@@ -1,33 +1,26 @@
-//indicates that this is a library
-apply plugin: 'com.android.library'
+apply plugin: 'com.android.model.application'
 
-android {
-    compileSdkVersion 23
-    buildToolsVersion '23.0.1'
-    sourceSets {
-        main {
-            //Path to your source code
-            java {
-                srcDir 'src/main/java'
+model {
+    android {
+        compileSdkVersion 23
+        buildToolsVersion "25.0.0"
+
+        defaultConfig {
+            applicationId "com.codeflow.uvccamera"
+            minSdkVersion.apiLevel = 23
+            targetSdkVersion.apiLevel = 23
+            versionCode 1
+            versionName "1.0"
+        }
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles.add(file('proguard-android.txt'))
             }
         }
-    }
-    defaultConfig {
-
-        minSdkVersion 19
-        targetSdkVersion 23
-
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        ndk {
+            moduleName = "uvc_camera_native_layer"
         }
-    }
-    lintOptions {
-        abortOnError false
-    }
-    productFlavors {
     }
 }
 
@@ -37,6 +30,56 @@ dependencies {
     compile 'com.google.android.gms:play-services:8.1.0'
     compile files('libs/UVCCameraActivity.jar')
 }
+
+
+
+//-----
+
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
+//
+////indicates that this is a library
+//apply plugin: 'com.android.library'
+//
+//android {
+//    compileSdkVersion 23
+//    buildToolsVersion '23.0.1'
+//    sourceSets {
+//        main {
+//            //Path to your source code
+//            java {
+//                srcDir 'src/main/java'
+//            }
+//            jniLibs.srcDir 'src/main/libs'
+//            jni.srcDirs = []
+//        }
+//    }
+//    defaultConfig {
+//
+//        minSdkVersion 23
+//        targetSdkVersion 23
+//
+//    }
+//    buildTypes {
+//        release {
+//            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+//        }
+//    }
+//    lintOptions {
+//        abortOnError false
+//    }
+//    productFlavors {
+//    }
+//}
+
+//dependencies {
+//    compile fileTree(include: ['*.jar'], dir: 'libs')
+//    compile 'com.android.support:appcompat-v7:23.0.0'
+//    compile 'com.google.android.gms:play-services:8.1.0'
+//    compile files('libs/UVCCameraActivity.jar')
+//}
 
 //task to delete the old jar
 task deleteOldJar(type: Delete) {
@@ -61,3 +104,36 @@ task exportJarToUnity(type: Copy) {
 }
 
 exportJar.dependsOn(deleteOldJar, build)
+
+// ----------
+
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn ndkBuild
+}
+
+String getNdkBuildPath() {
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    def ndkBuildingDir = properties.getProperty("ndk.dir")
+    def ndkBuildPath = ndkBuildingDir
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        ndkBuildPath = ndkBuildingDir + '/ndk-build.cmd'
+    } else {
+        ndkBuildPath = ndkBuildingDir + '/ndk-build'
+    }
+    return ndkBuildPath
+}
+
+task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
+    println('executing ndkBuild')
+    def ndkBuildPath = getNdkBuildPath();
+    commandLine ndkBuildPath, '-j8', '-C', file('src/main').absolutePath
+}
+
+task ndkClean(type: Exec, description: 'clean JNI libraries') {
+    println('executing ndkBuild clean')
+    def ndkBuildPath = getNdkBuildPath();
+    commandLine ndkBuildPath, 'clean', '-C', file('src/main').absolutePath
+}
+
+clean.dependsOn 'ndkClean'
