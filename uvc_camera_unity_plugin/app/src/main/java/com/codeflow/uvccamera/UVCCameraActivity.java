@@ -93,6 +93,7 @@ public class UVCCameraActivity extends UnityPlayerActivity
 
     public  void StartPreview(int width, int height, int pixelformat)
     {
+        Log("StartPreview");
         if( mUVCCamera != null && mConnected )
         {
             //
@@ -156,6 +157,8 @@ public class UVCCameraActivity extends UnityPlayerActivity
                 //
                 mIsPreviewing = true;
             }
+        } else {
+            Log("mUVCCamera is null?");
         }
     }
 
